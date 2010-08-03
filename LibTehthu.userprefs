@@ -1,0 +1,33 @@
+﻿<Properties>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" ctype="Workspace" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Gtk-GUI/Main.cs" ctype="Workbench">
+    <Files>
+      <File FileName="LibTehthu/Tehthu.cs" Line="120" Column="4" />
+      <File FileName="LibTehthu/SizeQueue.cs" Line="1" Column="1" />
+      <File FileName="LibTehthu/StringCase.cs" Line="1" Column="1" />
+      <File FileName="Tests/StringCaseTest.cs" Line="1" Column="1" />
+      <File FileName="Tests/Main.cs" Line="1" Column="1" />
+      <File FileName="Tests/test-dict.teh" Line="1" Column="1" />
+      <File FileName="Tests/TehthuTest.cs" Line="1" Column="1" />
+      <File FileName="Gtk-GUI/Main.cs" Line="197" Column="43" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State expanded="True" selected="True">
+          <Node name="Gtk-GUI" expanded="True" />
+          <Node name="LibTehthu" expanded="True" />
+          <Node name="Packages" expanded="True" />
+          <Node name="Tests" expanded="True" />
+        </State>
+      </Pad>
+      <Pad Id="ClassPad">
+        <State expanded="True" selected="True" />
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches ctype="PinnedWatchStore" />
+  <AuthorInfo Name="Sean McNamara" Email="smcnam@gmail.com" Copyright="2010 Sean McNamara" ctype="AuthorInformation" />
+</Properties>
