@@ -516,28 +516,9 @@ namespace LibTehthu
 					string left = theMatch.Groups[1].Value;
 					string right = theMatch.Groups[2].Value;
 					
-					List<string> _try;
-					if(ltr.TryGetValue(left.ToLower(), out _try))
-					{
-						_try.Add(right);	
-					}
-					else
-					{
-						_try = new List<string>();
-						_try.Add(right);
-						ltr.Add(left.ToLower(), _try);
-					}
+					tryAddDictWord(ltr, left, right, getLeftLanguageName(), file.Name, lineno);
 					
-					if(rtl.TryGetValue(right.ToLower(), out _try))
-					{
-						_try.Add(left);	
-					}
-					else
-					{
-						_try = new List<string>();
-						_try.Add(left);
-						rtl.Add(right.ToLower(), _try);
-					}
+					tryAddDictWord(rtl, right, left, getRightLanguageName(), file.Name, lineno);
 				}
 				
 				fs.Close();
@@ -548,6 +529,30 @@ namespace LibTehthu
 			{
 				throw new IOException("Can not read from file " + file.Name + "\n" + se.Message);	
 			}
+		}
+		
+		private void tryAddDictWord(Dictionary<string, List<string>> dict, string key, string val, string langName, string filename, int lineno)
+		{
+			List<string> _try;
+			if(dict.TryGetValue(key.ToLower(), out _try))
+			{
+				_try.Add(val);
+				
+				string definitions = "";
+				foreach(string defin in _try)
+				{
+					definitions += "\t" + defin + "\n";
+				}
+				putLogLine("Note: Input File " + filename + ", Line " + lineno +
+				           ": Multiple definitions for " + langName +" word `" + key.ToLower() + "':\n" +
+				           definitions);
+			}
+			else
+			{
+				_try = new List<string>();
+				_try.Add(val);
+				dict.Add(key.ToLower(), _try);
+			}	
 		}
 		
 		private string trimSymbols(string input, out string trimmedStart, out string trimmedEnd)
