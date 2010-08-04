@@ -5,4 +5,6 @@
 *.tar.gz
 *.zip
 *.pidb
-LibTehthu/doc
+LibTehthu/doc/rtf
+LibTehtu/doc/latex
+
