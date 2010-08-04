@@ -1,6 +1,6 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" ctype="Workspace" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Gtk-GUI/Main.cs" ctype="Workbench">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Release" ctype="Workspace" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="LibTehthu/SizeQueue.cs" ctype="Workbench">
     <Files>
       <File FileName="LibTehthu/Tehthu.cs" Line="120" Column="4" />
       <File FileName="LibTehthu/SizeQueue.cs" Line="1" Column="1" />
@@ -9,13 +9,15 @@
       <File FileName="Tests/Main.cs" Line="1" Column="1" />
       <File FileName="Tests/test-dict.teh" Line="1" Column="1" />
       <File FileName="Tests/TehthuTest.cs" Line="1" Column="1" />
-      <File FileName="Gtk-GUI/Main.cs" Line="197" Column="43" />
+      <File FileName="Gtk-GUI/Main.cs" Line="219" Column="6" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
-        <State expanded="True" selected="True">
+        <State expanded="True">
           <Node name="Gtk-GUI" expanded="True" />
-          <Node name="LibTehthu" expanded="True" />
+          <Node name="LibTehthu" expanded="True">
+            <Node name="SizeQueue.cs" selected="True" />
+          </Node>
           <Node name="Packages" expanded="True" />
           <Node name="Tests" expanded="True" />
         </State>

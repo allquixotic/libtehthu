@@ -5,6 +5,18 @@
  * To Public License, Version 2, as published by Sam Hocevar. See
  * http://sam.zoy.org/wtfpl/COPYING for more details. */
 
+/*
+ * NOTE: This file contains Doxygen-style comments. They are not very fun to read in-line.
+ * If you don't have the documentation in your desired format, you can generate HTML, PDF, CHM, etc. by installing Doxygen yourself.
+ * See the Doxygen website and FAQ for details.
+ * */
+
+/*! \file StringCase.cs
+ *  \brief Utilities for dealing with capital and lowercase letters in creative ways.
+ * 
+ *  Tehthu.cs is one-way tightly coupled to the StringCase API.
+ * */
+
 using System;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -12,6 +24,13 @@ using System.Text.RegularExpressions;
 namespace LibTehthu
 {
 
+	/*! \brief The types of caseness for a word.
+	 *  Caps: Every letter in the word is a capital letter.\n
+	 *  Proper: Only the first letter of the word is a capital letter; the rest are lowercase.\n
+	 *  Lower: Every letter in the word is a lowercase letter.\n
+	 *  Mixed: None of the above cases (Caps, Proper, Lower) apply, but the word contains at least one letter.\n
+	 *  Null: The word contains no letters (only symbols), is null, or zero-length.
+	 * */
 	public enum CaseType
 	{
 		Caps,
@@ -21,8 +40,27 @@ namespace LibTehthu
 		Null
 	}
 	
+	/*! \brief The StringCase class.
+	 *  A class for detecting the case of, and transforming the case of, letters in a string.\n
+	 *  A "letter" is a special type of character that is defined as having both a capital and a lowercase type.\n
+	 *  A "symbol" is a character that does not have any such capital/lowercase modality.\n
+	 *  Capital and lowercase letters have different character codes. The mapping between capital and lower letters is defined by the CLR.\n
+	 *  Specifically, the routines Char.ToUpper() and Char.ToLower() are used.
+	 * */
 	public class StringCase
 	{
+		/*! \brief Convert the caseness of a string into the specified type.
+		 *  \param s The string to convert.
+		 *  \param trans The transformation to perform.
+		 *  \return The transformed string.
+		 * 
+		 *  Symbols (whitespace, non-letters) are unmodified. Letter characters are modified as dictated by the CaseType: \n
+		 *  Caps:   Every letter in the string is converted to a capital letter.\n
+		 *  Proper: The first letter of the word is made capital; the rest are made lowercase.\n
+		 *  Lower:  Every letter in the string is converted to a lowercase letter.\n
+		 *  Mixed:  The string is returned unmodified, since there are many ways to create a mixed case string, and we don't want to choose one arbitrarily.\n
+		 *  Null:   A null reference is returned.
+		 * */
 		public static string transformCase(string s, CaseType trans)
 		{
 			if(s == null)
@@ -63,6 +101,11 @@ namespace LibTehthu
 			}
 		}
 		
+		/*! \brief Determine the case type of the specified string.
+		 *  \return The case type.
+		 * 
+		 *  See the documentation of the CaseType enum for details.
+		 * */
 		public static CaseType getCaseType(string s)
 		{
 			if(s == null || s.Length == 0)
