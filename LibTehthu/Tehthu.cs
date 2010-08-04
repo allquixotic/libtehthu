@@ -252,7 +252,7 @@ namespace LibTehthu
 			{
 				string _out;
 				translateWord(word, out _out, dir);
-				if(_out.Trim().Length > 0)
+				if(_out != null && _out.Trim().Length > 0)
 				{
 					result += _out;
 					if(i < words.Length - 1)
