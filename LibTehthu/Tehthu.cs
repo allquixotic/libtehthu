@@ -314,25 +314,43 @@ namespace LibTehthu
 					val = null;	
 				}
 				else
-				{
+				{ //Transform the output case into the input case.
+					
 					CaseType dict_case = StringCase.getCaseType(result[0]);
-					if(dict_case == CaseType.Mixed)
+					CaseType key_case = StringCase.getCaseType(_origKey);
+					string _outval = null;
+					
+					if(_origKey.Length == 1)
 					{
-						val = (trimmedStart != null ? trimmedStart : "") 
-						  + result[0]
-						  + (trimmedEnd != null ? trimmedEnd : "");	
+						//Input one-letter uppercase word -> output proper-case
+						if(key_case == CaseType.Caps)
+						{
+							_outval = StringCase.transformCase(result[0], CaseType.Proper);
+						}
+						else
+						{
+							_outval = StringCase.transformCase(result[0], key_case);
+						}
 					}
 					else
 					{
-						CaseType key_case = StringCase.getCaseType(_origKey);
-						val = (trimmedStart != null ? trimmedStart : "") 
-						  + StringCase.transformCase(result[0], key_case)
-						  + (trimmedEnd != null ? trimmedEnd : "");	
+						if(dict_case == CaseType.Mixed)
+						{
+							_outval = result[0];
+						}
+						else
+						{
+							_outval = StringCase.transformCase(result[0], key_case);
+						}
 					}
+					
+					val = (trimmedStart != null ? trimmedStart : "") 
+							  + _outval
+							  + (trimmedEnd != null ? trimmedEnd : "");	
 					
 					if(result.Count > 1)
 					{
-						putLogLine("Note: using first translation for key `" + key + "' : `" + result[0] + "'");
+						putLogLine("Note: using first translation for ambiguous key `" + key + "' : `" + result[0] + "'");
 					}
 				}
 			}
