@@ -286,6 +286,12 @@ namespace LibTehthu
 				return false;	
 			}
 			
+			if(_origKey.Length > 2 && _origKey[0] == '[' && _origKey[_origKey.Length - 1] == ']')
+			{
+				 val = _origKey.Substring(1, _origKey.Length - 2);	
+				return true;
+			}
+			
 			if(_origKey.ToLower() == "amarok")
 			{
 				string wocka = "";
