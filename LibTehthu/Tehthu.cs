@@ -278,12 +278,24 @@ namespace LibTehthu
 		 *  This function is reentrant, and can be used from multiple threads as long as WRITE functions are synchronized.
 		 * */
 		public bool translateWord(string _origKey, out string val, TranslateDirection dir)
-		{
+		{	
 			if(_origKey == null || (dir != TranslateDirection.LeftToRight && dir != TranslateDirection.RightToLeft))
 			{
 				putLogLine("Warning: null key or invalid direction in translateWord()");
 				val = null;
 				return false;	
+			}
+			
+			if(_origKey.ToLower() == "amarok")
+			{
+				string wocka = "";
+				Random r = new Random();
+				for(int i = 0; i < r.Next(100); i++)
+				{
+					wocka += "wocka ";	
+				}
+				val = StringCase.transformCase(wocka, StringCase.getCaseType(_origKey));
+				return true;
 			}
 			
 			string intermed_key = _origKey.ToLower();
@@ -303,55 +315,66 @@ namespace LibTehthu
 			List<string> result;
 			if(!dict.TryGetValue(key.ToLower(), out result))
 			{
-				putLogLine("Note: no translation for key `" + key + "'");
-				val = null;
-				return false;
-			}
-			else
-			{
-				if(result == null)
+				if(dir == TranslateDirection.LeftToRight && key.Length > 1
+				   && key.ToLower()[key.Length - 1] == 's')
 				{
-					val = null;	
+					if(!dict.TryGetValue(key.Substring(0, key.Length - 2).ToLower(), out result))
+					{
+						putLogLine("Note: no translation for key `" + key + "'");
+						val = null;
+						return false;
+					}
 				}
 				else
-				{ //Transform the output case into the input case.
-					
-					CaseType dict_case = StringCase.getCaseType(result[0]);
-					CaseType key_case = StringCase.getCaseType(_origKey);
-					string _outval = null;
-					
-					if(_origKey.Length == 1)
+				{
+					putLogLine("Note: no translation for key `" + key + "'");
+					val = null;
+					return false;
+				}
+			}
+
+			if(result == null || result.Count < 1 || result[0] == null)
+			{
+				val = null;	
+			}
+			else
+			{ //Transform the output case into the input case.
+				
+				CaseType dict_case = StringCase.getCaseType(result[0]);
+				CaseType key_case = StringCase.getCaseType(_origKey);
+				string _outval = null;
+				
+				if(key.Length == 1)
+				{
+					//Input one-letter uppercase word -> output proper-case
+					if(key_case == CaseType.Caps || key_case == CaseType.Proper)
 					{
-						//Input one-letter uppercase word -> output proper-case
-						if(key_case == CaseType.Caps)
-						{
-							_outval = StringCase.transformCase(result[0], CaseType.Proper);
-						}
-						else
-						{
-							_outval = StringCase.transformCase(result[0], key_case);
-						}
+						_outval = StringCase.transformCase(result[0], CaseType.Proper);
 					}
 					else
 					{
-						if(dict_case == CaseType.Mixed)
-						{
-							_outval = result[0];
-						}
-						else
-						{
-							_outval = StringCase.transformCase(result[0], key_case);
-						}
+						_outval = StringCase.transformCase(result[0], key_case);
 					}
-					
-					val = (trimmedStart != null ? trimmedStart : "") 
-							  + _outval
-							  + (trimmedEnd != null ? trimmedEnd : "");	
-					
-					if(result.Count > 1)
+				}
+				else
+				{
+					if(dict_case == CaseType.Mixed)
 					{
-						putLogLine("Note: using first translation for ambiguous key `" + key + "' : `" + result[0] + "'");
+						_outval = result[0];
 					}
+					else
+					{
+						_outval = StringCase.transformCase(result[0], key_case);
+					}
+				}
+				
+				val = (trimmedStart != null ? trimmedStart : "") 
+						  + _outval
+						  + (trimmedEnd != null ? trimmedEnd : "");	
+				
+				if(result.Count > 1)
+				{
+					putLogLine("Note: using first translation for ambiguous key `" + key + "' : `" + result[0] + "'");
 				}
 			}
 			return true;
