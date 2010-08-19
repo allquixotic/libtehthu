@@ -1,9 +1,19 @@
-/* Copyright (c) 2010 Sean McNamara
- * This program is free software. It comes without any warranty, to
- * the extent permitted by applicable law. You can redistribute it
- * and/or modify it under the terms of the Do What The Fuck You Want
- * To Public License, Version 2, as published by Sam Hocevar. See
- * http://sam.zoy.org/wtfpl/COPYING for more details. */
+/*   LibTehthu -- a simple translator between syntactically-identical languages.
+ *   Copyright (C) 2010  Sean McNamara
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
 		
 /*
  * NOTE: This file contains Doxygen-style comments. They are not very fun to read in-line.
@@ -29,6 +39,9 @@
  * \n
  *  In this example, English is the left-hand language name, Spanish is the right-hand language name.\n
  *  `hello' is a word in the left-hand language, and `hola' is a word in the right-hand language.\n
+ * 
+ *  The native file format of LibTehthu is given below. However, it can also handle ODS files. See the file README.txt in the
+ *  distribution for more information about using LibTehthu with ODS files.\n
  * \n
  *  DETAILED FILE FORMAT\n
  *  The program does not care about the extension of the file. However, the de facto standard for the extension is .teh, after Tehthu.\n
@@ -62,6 +75,9 @@ using System.Text.RegularExpressions;
 using System.IO;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
+
+using ODSReadWrite;
 
 /*! \brief The main LibTehthu translator namespace.
  * 
@@ -105,6 +121,8 @@ namespace LibTehthu
 		private bool haveLogReader = false;
 		private string leftLanguageName = DEFAULT_LEFT;
 		private string rightLanguageName = DEFAULT_RIGHT;
+		private Regex dictLineReg1 = null;
+		private Regex dictLineReg2 = null;
 		
 		/*! \brief Instantiates the translator.
 		 * 
@@ -490,6 +508,9 @@ namespace LibTehthu
 				this.delimiter = delim;
 			}
 			
+			dictLineReg1 = new Regex("(.+)[" + delimiter + "](.+)", RegexOptions.Compiled);
+			dictLineReg2 = new Regex("(.+)[" + delimiter + "](.+)[" + delimiter + "]+", RegexOptions.Compiled);
+			
 			if(_reparse)
 			{
 				reparse();
@@ -515,10 +536,83 @@ namespace LibTehthu
 		
 		private void parse()
 		{
-			putLogLine("Info: Parsing started.");
+			if(file != null && file.Name != null  && file.Name.Length > 4 && 
+			   file.Name.Substring(file.Name.Length - 4, 4) == ".ods")
+			{
+				parseOds();	
+			}
+			else
+			{
+				parsePlainText();	
+			}
+		}
+		
+		private void parseOds()
+		{
+			putLogLine("Info: Parsing ODS started.");
+			OdsReaderWriter orw = new OdsReaderWriter();
+			DataSet ds = orw.ReadOdsFile(file.FullName);
+			DataTable dt = ds.Tables["Dictionary"];
+			if(dt == null)
+			{
+				dt = ds.Tables["Sheet1"];
+				if(dt == null)
+				{
+					dt = ds.Tables[0];
+					if(dt == null)
+					{
+						putLogLine("Critical error: Couldn't find a spreadsheet containing the dictionary. The dictionary will be empty for this Tehthu session.");
+						return;
+					}
+				}
+			}
+			
+			string lval = null;
+			string rval = null;
+			int lineno = 1;
+			foreach(DataRow dr in dt.Rows)
+			{
+				if(dr.ItemArray.Length == 0)
+				{
+					continue;	
+				}
+				
+				if(dr.ItemArray.Length == 1)
+				{
+					lval = dr.ItemArray[0].ToString();
+					rval = "";
+				}
+				
+				//Ignore any data past column 2
+				if(dr.ItemArray.Length >= 2)
+				{	
+					lval = dr.ItemArray[0].ToString();
+					rval = dr.ItemArray[1].ToString();
+					
+					//Does the first line specify language names?
+					if(lval[0] == '[' && lval[lval.Length - 1] == ']'
+					   && rval[0] == '[' && rval[rval.Length - 1] == ']'
+					   && lineno == 1)
+					{
+						setLeftLanguageName(lval.Substring(1, lval.Length - 2));
+						setRightLanguageName(rval.Substring(1, rval.Length - 2));
+					}
+				}
+				
+				tryAddDictWord(ltr, lval, rval, getLeftLanguageName(), file.Name, lineno);	
+				tryAddDictWord(rtl, rval, lval, getRightLanguageName(), file.Name, lineno);
+				lineno++;
+			}
+			
+			putLogLine("Info: Parsing complete.");
+		}
+		
+		private void parsePlainText()
+		{
+			putLogLine("Info: Parsing plain text started.");
 			try
 			{
-				Regex reg = new Regex("(.+)[" + delimiter + "](.+)", RegexOptions.Compiled);
+				
 				Regex languageNames = new Regex(@"\[(.+)\] \[(.+)\]", RegexOptions.Compiled);
 				FileStream fs = file.OpenRead();
 				if(!fs.CanRead)
@@ -527,30 +621,52 @@ namespace LibTehthu
 				
 				int lineno = 1;
 				string line = reader.ReadLine();
-				MatchCollection langMatches = languageNames.Matches(line);
-				if(langMatches.Count == 1)
+				for(int i = 0; i < 2; i++)
 				{
-					Match theMatch = langMatches[0];
-					if(theMatch.Groups.Count == 3)
+					MatchCollection langMatches = languageNames.Matches(line);
+					if(langMatches.Count == 1)
 					{
-						setLeftLanguageName(theMatch.Groups[1].Value);
-						setRightLanguageName(theMatch.Groups[2].Value);
+						Match theMatch = langMatches[0];
+						if(theMatch.Groups.Count == 3)
+						{
+							setLeftLanguageName(theMatch.Groups[1].Value);
+							setRightLanguageName(theMatch.Groups[2].Value);
+						}
+						else
+						{
+							putLogLine("Warning: Syntax error on language names line: Expected 3 groups; found " + theMatch.Groups.Count);	
+						}
+						lineno++;
+						line = reader.ReadLine();
 					}
 					else
 					{
-						putLogLine("Warning: Syntax error on language names line: Expected 3 groups; found " + theMatch.Groups.Count);	
+						//It's trying to tell us what the delimiter should be. Don't reparse, just update the regexes.
+						if(line.Length == 1)
+						{
+							setDelimiterInternal(line, false);
+							line = reader.ReadLine();
+						}
+						else
+						{
+							//This line isn't a language name stanza or a delimiter stanza, so stop trying for them
+							break;	
+						}
 					}
-					lineno++;
-					line = reader.ReadLine();
 				}
 				
 				for(; line != null; line = reader.ReadLine(), lineno++)
 				{
-					MatchCollection mc = reg.Matches(line);
+					//Try to match the more strict regex first; reg2 has one or more trailing delimiters on the end that get discarded.
+					MatchCollection mc = dictLineReg2.Matches(line);
 					if(mc.Count != 1)
 					{
-						putLogLine("Warning: Input File " + file.Name + ", Line " + lineno + ": Does not contain exactly one separator character `" + delimiter + "'. SKIPPING LINE.");
-						continue;
+						mc = dictLineReg1.Matches(line);
+						if(mc.Count != 1)
+						{
+							putLogLine("Warning: Input File " + file.Name + ", Line " + lineno + ": Does not contain exactly one separator character `" + delimiter + "'. SKIPPING LINE.");
+							continue;
+						}
 					}
 					
 					Match theMatch = mc[0];
@@ -575,7 +691,7 @@ namespace LibTehthu
 			catch(SystemException se)
 			{
 				throw new IOException("Can not read from file " + file.Name + "\n" + se.Message);	
-			}
+			}	
 		}
 		
 		private void tryAddDictWord(Dictionary<string, List<string>> dict, string key, string val, string langName, string filename, int lineno)

@@ -1,6 +1,6 @@
 Readme File for LibTehthu
 Copyright (c) 2010 Sean McNamara
-Last Updated: August 3, 2010
+Last Updated: August 18, 2010
 
 LibTehthu is a re-usable software component for translating between two syntactically identical languages. It may sound trivial, but it turned out to be moderately challenging to implement all the features I wanted to include. It still isn't anywhere near as advanced as natural language translators used in Babelfish, Google Translate, et al, but it is good at what it does.
 
@@ -8,7 +8,7 @@ LibTehthu is written in C# .NET, and requires the .NET runtime version 3.0 or la
 
 There are two pieces to LibTehthu, so far: the reusable library, and the graphical interface (GUI). The GUI is very simple, and is mostly intended for testing out the translation engine against a dictionary. However, the GUI is nearly usable as a way to manually translate entire sentences from English to a constructed language, and back again.
 
-I am releasing LibTehthu (both the GUI and the library) under the WTFPL 2.0. That means that, if you obtain the code, you are free to do Whatever the Fuck You Want To with it. (I'm dead serious; read the license: http://sam.zoy.org/wtfpl/
+I am releasing LibTehthu (both the GUI and the library) under the GPL 3.0 or later.
 
 SOURCE CODE: git clone git://tiyukquellmalz.org/libtehthu
 
@@ -38,7 +38,32 @@ How to use the GUI on Windows:
 7. Copy and paste is supported in all the main text areas of the program.
 
 FILE FORMAT
-The program does not care about the extension of the file. However, the de facto standard for the extension is .teh, after Tehthu.
+The program accepts two alternate file formats.
+
+The first is the OpenDocument Spreadsheet as defined by OASIS standards. ODF version 1.0 or 1.1 is supported.
+
+If you intend to use an OpenDocument Spreadsheet (as created by MS Office 2007 or later, or OpenOffice 2.0 or later), you must give the file the extension ".ods".
+
+If you use an ODS, the spreadsheet used will be the first one of the following that is found:
+
+*The spreadsheet with the name "Dictionary"
+*The spreadsheet with the name "Sheet1"
+*The first spreadsheet according to the sorting order given in the file (usually the left-most spreadsheet in your spreadsheet pager).
+
+Within this spreadsheet, only the first two columns will be dealt with. You can put other data in the other columns; it will be ignored.
+
+The first row may optionally contain values in parentheses, specifying custom language names for the language in that column.
+If you want to specify language names, each language name must begin with a [ and end with a ] character. A language name spec can only be on the first row.
+
+Each subsequent row will be treated as a mapping between languages.
+
+You must use the first and second columns (ordinally speaking, so that's usually Columns A and B) if you want correct operation of the translator.
+
+The .ods format is more flexible because there is no delimiter. You can include any character at all in both the left-hand and right-hand words.
+
+Any other extension will be treated as a plain text file as described below:
+
+The de facto standard for the extension is .teh, after Tehthu, but you can call these custom Tehthu files any extension you like except ".ods".
 
 I. Language Names
 Description: A dictionary file may optionally start out with a stanza matching the following regular expression:
