@@ -173,19 +173,22 @@ namespace GtkGUI
 					initialize(new FileInfo(fcd.Filename), input, send, nb, leftButton, rightButton);
 				};
 				
-			//If the settings file already has the name of a dictionary, try to open it.
-			//We just want to read the file at this point, not write it.
-			TextReader tr = new StreamReader(settingsFile.OpenRead());
-			String settingsLine = tr.ReadLine();
-			tr.Close();
-			if(settingsLine != null)
-			{
-				FileInfo sett = new FileInfo(settingsLine);
-				if(sett.Exists)
+				//If the settings file already has the name of a dictionary, try to open it.
+				//We just want to read the file at this point, not write it.
+				if(settingsFile.Exists)
 				{
-					initialize(sett, input, send, nb, leftButton, rightButton);
+					TextReader tr = new StreamReader(settingsFile.OpenRead());
+					String settingsLine = tr.ReadLine();
+					tr.Close();
+					if(settingsLine != null)
+					{
+						FileInfo sett = new FileInfo(settingsLine);
+						if(sett.Exists)
+						{
+							initialize(sett, input, send, nb, leftButton, rightButton);
+						}
+					}
 				}
-			}
 				
 				mainwindow.Show();
 			}
@@ -198,6 +201,9 @@ namespace GtkGUI
 			}
 		}
 		
+		//This method handles TWO files:
+		//(1) The file to initialize as the dictionary. Passed as `fi'
+		//(2) The settings file. Refer to `settingsFile' member.
 		static void initialize(FileInfo fi, Gtk.Entry input, Gtk.Button send, Gtk.Notebook nb, Gtk.Button leftButton, Gtk.Button rightButton)
 		{
 			if(teh != null)
@@ -247,6 +253,7 @@ namespace GtkGUI
 			
 			leftButton.Label = teh.getLeftLanguageName() + "-to-" + teh.getRightLanguageName();
 			rightButton.Label = teh.getRightLanguageName() + "-to-" + teh.getLeftLanguageName();
+			input.GrabFocus();
 		}
 		
 		static void ConsoleEater()
