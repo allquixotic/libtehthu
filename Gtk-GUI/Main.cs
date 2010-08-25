@@ -37,9 +37,22 @@ namespace GtkGUI
 		static Gtk.Window mainwindow = null;
 		static Gtk.TextView inputView = null, outputView = null, debugView = null;
 		static bool leftToRight = true;
+		static FileInfo settingsFile = null;
 		
 		public static void Main (string[] args)
 		{
+			string folderPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			if(folderPath != null && folderPath.Length > 0)
+			{
+				if(folderPath[folderPath.Length - 1] != Path.DirectorySeparatorChar)
+				{
+					folderPath += Path.DirectorySeparatorChar;		
+				}
+				
+				settingsFile = new FileInfo(folderPath + ".tehthuconfig");
+			}
+			
+			
 			Assembly ass = Assembly.GetExecutingAssembly();
 			
 			//Useful for seeing the names of embedded resources....
@@ -157,44 +170,22 @@ namespace GtkGUI
 						return;
 					}
 
-					if(teh != null)
-					{
-						teh.disconnectFromLog();
-						teh = null;
-					}
-					teh = loadFile(fcd.Filename);
-					teh.connectToLog();
-					
-					if(!monitor.IsAlive)
-					{
-						monitor.Start();
-					}
-					else
-					{
-						monitor.Abort();
-						monitor = new System.Threading.Thread(MainClass.ConsoleEater);
-						monitor.Start();
-					}
-				
-					teh.reparse();
-					
-					input.IsEditable = true;
-					input.Sensitive = true;
-					send.Sensitive = true;
-					
-					Gtk.Label inputTabLabel = (Gtk.Label) nb.GetTabLabel(nb.GetNthPage(0));
-					inputTabLabel.Text = "Input (" 
-						+ (leftToRight ? teh.getLeftLanguageName() : teh.getRightLanguageName())
-						+ ")";
-					
-					Gtk.Label outputTabLabel = (Gtk.Label) nb.GetTabLabel(nb.GetNthPage(1));
-					outputTabLabel.Text = "Output (" 
-						+ (leftToRight ? teh.getRightLanguageName() : teh.getLeftLanguageName())
-						+ ")";
-					
-					leftButton.Label = teh.getLeftLanguageName() + "-to-" + teh.getRightLanguageName();
-					rightButton.Label = teh.getRightLanguageName() + "-to-" + teh.getLeftLanguageName();
+					initialize(new FileInfo(fcd.Filename), input, send, nb, leftButton, rightButton);
 				};
+				
+			//If the settings file already has the name of a dictionary, try to open it.
+			//We just want to read the file at this point, not write it.
+			TextReader tr = new StreamReader(settingsFile.OpenRead());
+			String settingsLine = tr.ReadLine();
+			tr.Close();
+			if(settingsLine != null)
+			{
+				FileInfo sett = new FileInfo(settingsLine);
+				if(sett.Exists)
+				{
+					initialize(sett, input, send, nb, leftButton, rightButton);
+				}
+			}
 				
 				mainwindow.Show();
 			}
@@ -205,6 +196,57 @@ namespace GtkGUI
 				monitor.Join(500);
 				monitor.Abort();
 			}
+		}
+		
+		static void initialize(FileInfo fi, Gtk.Entry input, Gtk.Button send, Gtk.Notebook nb, Gtk.Button leftButton, Gtk.Button rightButton)
+		{
+			if(teh != null)
+			{
+				teh.disconnectFromLog();
+				teh = null;
+			}
+			teh = loadFile(fi.FullName);
+			teh.connectToLog();
+			
+			if(!monitor.IsAlive)
+			{
+				monitor.Start();
+			}
+			else
+			{
+				monitor.Abort();
+				monitor = new System.Threading.Thread(MainClass.ConsoleEater);
+				monitor.Start();
+			}
+		
+			teh.reparse();
+			
+			//We're still here, there were no fatal exceptions, so this dict is "safe" for opening on startup (we hope)
+			//Remember this fact in the .tehthuconfig file.
+			if(settingsFile != null)
+			{
+				TextWriter tw = new StreamWriter(settingsFile.OpenWrite());
+				tw.WriteLine(teh.getFile().FullName);
+				tw.Flush();
+				tw.Close();
+			}
+			
+			input.IsEditable = true;
+			input.Sensitive = true;
+			send.Sensitive = true;
+			
+			Gtk.Label inputTabLabel = (Gtk.Label) nb.GetTabLabel(nb.GetNthPage(0));
+			inputTabLabel.Text = "Input (" 
+				+ (leftToRight ? teh.getLeftLanguageName() : teh.getRightLanguageName())
+				+ ")";
+			
+			Gtk.Label outputTabLabel = (Gtk.Label) nb.GetTabLabel(nb.GetNthPage(1));
+			outputTabLabel.Text = "Output (" 
+				+ (leftToRight ? teh.getRightLanguageName() : teh.getLeftLanguageName())
+				+ ")";
+			
+			leftButton.Label = teh.getLeftLanguageName() + "-to-" + teh.getRightLanguageName();
+			rightButton.Label = teh.getRightLanguageName() + "-to-" + teh.getLeftLanguageName();
 		}
 		
 		static void ConsoleEater()
@@ -235,6 +277,7 @@ namespace GtkGUI
 		private static Tehthu loadFile(string ff)
 		{
 			Tehthu t = new Tehthu(ff);
+			
 			return t;
 		}
 	}

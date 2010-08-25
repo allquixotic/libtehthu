@@ -13,7 +13,7 @@ using Ionic.Zip;
 
 namespace ODSReadWrite
 {
-    public class OdsReaderWriter
+    internal class OdsReaderWriter
     {
         // Namespaces. We need this to initialize XmlNamespaceManager so that we can search XmlDocument.
         private static string[,] namespaces = new string[,] 
@@ -85,7 +85,7 @@ namespace ODSReadWrite
         /// </summary>
         /// <param name="inputFilePath">Path to the .ods file.</param>
         /// <returns>DataSet that represents .ods file.</returns>
-        public DataSet ReadOdsFile(string inputFilePath)
+        internal DataSet ReadOdsFile(string inputFilePath)
         {
             ZipFile odsZipFile = this.GetZipFile(inputFilePath);
 
@@ -104,12 +104,12 @@ namespace ODSReadWrite
         }
 
         // In ODF sheet is stored in table:table node
-        private XmlNodeList GetTableNodes(XmlDocument contentXmlDocument, XmlNamespaceManager nmsManager)
+        internal XmlNodeList GetTableNodes(XmlDocument contentXmlDocument, XmlNamespaceManager nmsManager)
         {
             return contentXmlDocument.SelectNodes("/office:document-content/office:body/office:spreadsheet/table:table", nmsManager);
         }
 
-        private DataTable GetSheet(XmlNode tableNode, XmlNamespaceManager nmsManager)
+        internal DataTable GetSheet(XmlNode tableNode, XmlNamespaceManager nmsManager)
         {
             DataTable sheet = new DataTable(tableNode.Attributes["table:name"].Value);
 
@@ -122,7 +122,7 @@ namespace ODSReadWrite
             return sheet;
         }
 
-        private void GetRow(XmlNode rowNode, DataTable sheet, XmlNamespaceManager nmsManager, ref int rowIndex)
+        internal void GetRow(XmlNode rowNode, DataTable sheet, XmlNamespaceManager nmsManager, ref int rowIndex)
         {
             XmlAttribute rowsRepeated = rowNode.Attributes["table:number-rows-repeated"];
             if (rowsRepeated == null || Convert.ToInt32(rowsRepeated.Value, CultureInfo.InvariantCulture) == 1)
@@ -191,7 +191,7 @@ namespace ODSReadWrite
         /// </summary>
         /// <param name="odsFile">DataSet that represent .ods file.</param>
         /// <param name="outputFilePath">The name of the file to save to.</param>
-        public void WriteOdsFile(DataSet odsFile, string outputFilePath)
+        internal void WriteOdsFile(DataSet odsFile, string outputFilePath)
         {
             ZipFile templateFile = this.GetZipFile("template.ods");
 

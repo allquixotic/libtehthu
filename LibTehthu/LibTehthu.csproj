@@ -46,6 +46,9 @@
     <Compile Include="SizeQueue.cs" />
     <Compile Include="StringCase.cs" />
     <Compile Include="OdsReaderWriter.cs" />
+    <Compile Include="Parser.cs" />
+    <Compile Include="OdsParser.cs" />
+    <Compile Include="TehthuParser.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

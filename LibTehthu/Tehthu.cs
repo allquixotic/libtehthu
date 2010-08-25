@@ -97,6 +97,12 @@ namespace LibTehthu
 		RightToLeft
 	}
 	
+	public enum FileFormat
+	{
+		TEHTHU,
+		ODS
+	}
+	
 	/*! \brief Main Tehthu class.
 	  * 
 	  * You must instantiate an instance of this class to use the translator.\n
@@ -108,21 +114,19 @@ namespace LibTehthu
 	  * */
 	public class Tehthu
 	{
-		private const string DEFAULT_DELIMITER = "|";
 		private const string DEFAULT_LEFT = "Left";
 		private const string DEFAULT_RIGHT = "Right";
 		private static readonly string[] whitespace = new string[]{" ", "\r\n", "\n", "\t"};
 		
 		private readonly Dictionary<string, List<string>> ltr = new Dictionary<string, List<string>>();
 		private readonly Dictionary<string, List<string>> rtl = new Dictionary<string, List<string>>();
+		private readonly Dictionary<string, List<string>> ltrSuffixMap = new Dictionary<string, List<string>>();
+		private readonly Dictionary<string, List<string>> rtlSuffixMap = new Dictionary<string, List<string>>();
 		private readonly SizeQueue<string> log = new SizeQueue<string>(100);
 		private FileInfo file = null;
-		private string delimiter = null;
 		private bool haveLogReader = false;
 		private string leftLanguageName = DEFAULT_LEFT;
 		private string rightLanguageName = DEFAULT_RIGHT;
-		private Regex dictLineReg1 = null;
-		private Regex dictLineReg2 = null;
 		
 		/*! \brief Instantiates the translator.
 		 * 
@@ -137,50 +141,18 @@ namespace LibTehthu
 		 * The language names in the dictionary (if any) will not be set until you call reparse().
 		 * 
 		 * */
-		public Tehthu(FileInfo fileinfo) : this(fileinfo, DEFAULT_DELIMITER) {}
-		
-		/*! \brief Instantiates the translator.
-		 * 
-		 * Create a new translator with the given delimiter and default language names from the given dictionary file.\n
-		 * The language names in the dictionary (if any) will not be set until you call reparse().
-		 * */
-		public Tehthu(string path, string delim) : this(new FileInfo(path), delim) {}
-		
-		/*! \brief Instantiates the translator.
-		 * 
-		 * Create a new translator with the given delimiter and default language names from the given dictionary file.\n
-		 * The language names in the dictionary (if any) will not be set until you call reparse().
-		 * */
-		public Tehthu(FileInfo fileinfo, string delim) : this(fileinfo, delim, DEFAULT_LEFT, DEFAULT_RIGHT) {}
+		public Tehthu(FileInfo fileinfo) : this(fileinfo, DEFAULT_LEFT, DEFAULT_RIGHT) {}
 		
 		/*! \brief Instantiates the translator.
 		 * 
 		 * Create a new translator with the given delimiter and language names from the given dictionary file.\n
 		 * The language names in the dictionary (if any) will override the language names set here when you call reparse().
 		 * */
-		public Tehthu(FileInfo fileinfo, string delim, string left, string right)
+		public Tehthu(FileInfo fileinfo, string left, string right)
 		{
 			leftLanguageName  = left;
 			rightLanguageName = right;
 			setFileInternal(fileinfo, false);
-			setDelimiterInternal(delim, false);
-		}
-		
-		/*! \brief Set the delimiter that separates the left hand language lines from the right hand.
-		 *  WRITE (this function is not thread-safe).\n
-		 *  This function forces a reparse of the dictionary.
-		 * */
-		public void setDelimiter(string delim)
-		{
-			setDelimiterInternal(delim, true);
-		}
-		
-		/*! \brief Retrieve the delimiter that separates the left hand language from the right hand in the dictionary file.\n
-		 *  \return The delimiter, usually one character. The default is "|" (no quotes).
-		 * */
-		public string getDelimiter()
-		{
-			return delimiter;	
 		}
 		
 		/*! \brief Set the dictionary file used to translate.
@@ -241,6 +213,37 @@ namespace LibTehthu
 			return string.Copy(rightLanguageName);	
 		}
 		
+		internal void addSuffixMapping(string lhs, string rhs)
+		{
+			List<string> list;
+			if(lhs != null && rhs != null && lhs.Length > 0 && rhs.Length > 0)
+			{
+				if(ltrSuffixMap.ContainsKey(lhs))
+				{
+					putLogLine("Warning: Ambiguous mapping for " + getLeftLanguageName() + " suffix " + lhs);
+					ltrSuffixMap[lhs].Add(rhs);
+				}
+				else
+				{
+					list = new List<string>();
+					list.Add(rhs);
+					ltrSuffixMap.Add(lhs, list);
+				}
+				
+				if(rtlSuffixMap.ContainsKey(rhs))
+				{
+					putLogLine("Warning: Ambiguous mapping for " + getRightLanguageName() + " suffix " + rhs);
+					rtlSuffixMap[rhs].Add(lhs);	
+				}
+				else
+				{
+					list = new List<string>();
+					list.Add(lhs);
+					rtlSuffixMap.Add(rhs, list);
+				}
+			}
+		}
+		
 		/*! \brief Translate an input sentence into an output sentence.
 		 *  \param input The input sentence.
 		 *  \param dir The translation direction. LeftToRight means the input sentence is in the left-hand language,
@@ -266,10 +269,58 @@ namespace LibTehthu
 			int i = 0;
 			string result = "";
 			string[] words = input.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
+			int skipLoad = 0; //The number of words we should skip before trying to parse the next word
 			foreach(string word in words)
 			{
+				if(skipLoad > 0)
+				{
+					skipLoad--;
+					continue;
+				}
 				string _out;
-				translateWord(word, out _out, dir);
+				string tmpword = null;
+				
+				//Check for a literal word: tmpword is set iff only we found a literal word
+				if(word[0] == '[' && word[word.Length - 1] == ']')
+				{
+					//The easy case: one word surrounded by [these]
+					tmpword = word.Substring(1, word.Length - 2);
+				}
+				else if(word[0] == '[' && word[word.Length - 1] != ']')
+				{
+					tmpword = word;
+					bool found_closing_bracket = false;
+					//We have to search the remainder of the sentence to see if there's a closing bracket
+					for(int j = i+1; j < words.Length; j++)
+					{
+						tmpword += " " + words[j];
+						if(tmpword[tmpword.Length - 1] == ']')
+						{
+							found_closing_bracket = true;
+							skipLoad = j - i;
+							break;
+						}
+					}
+					
+					if(found_closing_bracket)
+					{
+						tmpword = tmpword.Substring(1, tmpword.Length - 2);	
+					}
+					else
+					{
+						tmpword = null; //We'll set it back to word in just a sec	
+					}
+				}
+				
+				if(tmpword == null)
+				{
+					translateWord(word, out _out, dir);
+				}
+				else
+				{
+					_out = tmpword;	
+				}
+				
 				if(_out != null && _out.Trim().Length > 0)
 				{
 					result += _out;
@@ -337,19 +388,37 @@ namespace LibTehthu
 			}
 			
 			List<string> result;
-			if(!dict.TryGetValue(key.ToLower(), out result))
+			string final_suffix = "";
+			if(!dict.TryGetValue(key, out result))
 			{
-				if(dir == TranslateDirection.LeftToRight && key.Length > 1
-				   && key.ToLower()[key.Length - 1] == 's')
+				bool success = false;
+				Dictionary<string, List<string>> suffixDict;
+				if(dir == TranslateDirection.LeftToRight)
 				{
-					if(!dict.TryGetValue(key.Substring(0, key.Length - 2).ToLower(), out result))
-					{
-						putLogLine("Note: no translation for key `" + key + "'");
-						val = null;
-						return false;
-					}
+					suffixDict = ltrSuffixMap;
 				}
 				else
+				{
+					suffixDict = rtlSuffixMap;
+				}
+				
+				foreach(string suffixKey in suffixDict.Keys)
+				{
+					Regex suffixRx = new Regex(@"(.+)" + suffixKey);
+					MatchCollection smc = suffixRx.Matches(key);
+					if(smc.Count == 1 && dict.TryGetValue(key.Substring(0, key.Length - suffixKey.Length).ToLower(), out result))
+					{
+						List<string> suffList;
+						if(suffixDict.TryGetValue(suffixKey, out suffList))
+						{
+							success = true; // We got a translation for the word with the suffix removed!
+							final_suffix = suffList[0];
+							break;
+						}
+					}
+				}
+				
+				if(!success)
 				{
 					putLogLine("Note: no translation for key `" + key + "'");
 					val = null;
@@ -373,22 +442,22 @@ namespace LibTehthu
 					//Input one-letter uppercase word -> output proper-case
 					if(key_case == CaseType.Caps || key_case == CaseType.Proper)
 					{
-						_outval = StringCase.transformCase(result[0], CaseType.Proper);
+						_outval = StringCase.transformCase(result[0] + final_suffix, CaseType.Proper);
 					}
 					else
 					{
-						_outval = StringCase.transformCase(result[0], key_case);
+						_outval = StringCase.transformCase(result[0]+ final_suffix, key_case);
 					}
 				}
 				else
 				{
 					if(dict_case == CaseType.Mixed)
 					{
-						_outval = result[0];
+						_outval = result[0] + final_suffix;
 					}
 					else
 					{
-						_outval = StringCase.transformCase(result[0], key_case);
+						_outval = StringCase.transformCase(result[0] + final_suffix, key_case);
 					}
 				}
 				
@@ -497,27 +566,7 @@ namespace LibTehthu
 			parse();
 		}
 		
-		private void setDelimiterInternal(string delim, bool _reparse)
-		{
-			if(delim == null || delim.Length == 0)
-			{
-				throw new NullReferenceException("The supplied delimiter must not be null or empty.");	
-			}
-			else
-			{
-				this.delimiter = delim;
-			}
-			
-			dictLineReg1 = new Regex("(.+)[" + delimiter + "](.+)", RegexOptions.Compiled);
-			dictLineReg2 = new Regex("(.+)[" + delimiter + "](.+)[" + delimiter + "]+", RegexOptions.Compiled);
-			
-			if(_reparse)
-			{
-				reparse();
-			}
-		}
-		
-		private void setFileInternal(FileInfo fileinfo, bool _reparse)
+		internal void setFileInternal(FileInfo fileinfo, bool _reparse)
 		{
 			if(fileinfo == null || !fileinfo.Exists)
 			{
@@ -534,167 +583,41 @@ namespace LibTehthu
 			}
 		}
 		
-		private void parse()
+		internal void parse()
 		{
+			/* The responsibility of this method is to first instantiate a parser,
+			 * then use the generic Parser interface methods to orchtestrate the parsing.
+			 * */
+			Parser parseley;
+			
 			if(file != null && file.Name != null  && file.Name.Length > 4 && 
 			   file.Name.Substring(file.Name.Length - 4, 4) == ".ods")
 			{
-				parseOds();	
+				parseley = new OdsParser(this);
 			}
 			else
 			{
-				parsePlainText();	
-			}
-		}
-		
-		private void parseOds()
-		{
-			putLogLine("Info: Parsing ODS started.");
-			OdsReaderWriter orw = new OdsReaderWriter();
-			DataSet ds = orw.ReadOdsFile(file.FullName);
-			DataTable dt = ds.Tables["Dictionary"];
-			if(dt == null)
-			{
-				dt = ds.Tables["Sheet1"];
-				if(dt == null)
-				{
-					dt = ds.Tables[0];
-					if(dt == null)
-					{
-						putLogLine("Critical error: Couldn't find a spreadsheet containing the dictionary. The dictionary will be empty for this Tehthu session.");
-						return;
-					}
-				}
+				parseley = new TehthuParser(this);
 			}
 			
-			string lval = null;
-			string rval = null;
-			int lineno = 1;
-			foreach(DataRow dr in dt.Rows)
+			putLogLine("Info: Parsing " + parseley.getFileFormatName() + " started.");
+			
+			while(parseley.parseConfigLine());
+			
+			while(!parseley.isEOF())
 			{
-				if(dr.ItemArray.Length == 0)
+				string lval, rval;
+				if(parseley.parseMappedSet(out lval, out rval))
 				{
-					continue;	
+					tryAddDictWord(ltr, lval, rval, getLeftLanguageName(), file.Name, parseley.getCurrentRow() + 1);
+					tryAddDictWord(rtl, rval, lval, getRightLanguageName(), file.Name, parseley.getCurrentRow() + 1);		
 				}
-				
-				if(dr.ItemArray.Length == 1)
-				{
-					lval = dr.ItemArray[0].ToString();
-					rval = "";
-				}
-				
-				//Ignore any data past column 2
-				if(dr.ItemArray.Length >= 2)
-				{	
-					lval = dr.ItemArray[0].ToString();
-					rval = dr.ItemArray[1].ToString();
-					
-					//Does the first line specify language names?
-					if(lval[0] == '[' && lval[lval.Length - 1] == ']'
-					   && rval[0] == '[' && rval[rval.Length - 1] == ']'
-					   && lineno == 1)
-					{
-						setLeftLanguageName(lval.Substring(1, lval.Length - 2));
-						setRightLanguageName(rval.Substring(1, rval.Length - 2));
-					}
-				}
-				
-				tryAddDictWord(ltr, lval, rval, getLeftLanguageName(), file.Name, lineno);	
-				tryAddDictWord(rtl, rval, lval, getRightLanguageName(), file.Name, lineno);
-				lineno++;
 			}
 			
 			putLogLine("Info: Parsing complete.");
 		}
 		
-		private void parsePlainText()
-		{
-			putLogLine("Info: Parsing plain text started.");
-			try
-			{
-				
-				Regex languageNames = new Regex(@"\[(.+)\] \[(.+)\]", RegexOptions.Compiled);
-				FileStream fs = file.OpenRead();
-				if(!fs.CanRead)
-					throw new IOException("Can not read from file " + file.Name);
-				TextReader reader = new StreamReader(fs);
-				
-				int lineno = 1;
-				string line = reader.ReadLine();
-				for(int i = 0; i < 2; i++)
-				{
-					MatchCollection langMatches = languageNames.Matches(line);
-					if(langMatches.Count == 1)
-					{
-						Match theMatch = langMatches[0];
-						if(theMatch.Groups.Count == 3)
-						{
-							setLeftLanguageName(theMatch.Groups[1].Value);
-							setRightLanguageName(theMatch.Groups[2].Value);
-						}
-						else
-						{
-							putLogLine("Warning: Syntax error on language names line: Expected 3 groups; found " + theMatch.Groups.Count);	
-						}
-						lineno++;
-						line = reader.ReadLine();
-					}
-					else
-					{
-						//It's trying to tell us what the delimiter should be. Don't reparse, just update the regexes.
-						if(line.Length == 1)
-						{
-							setDelimiterInternal(line, false);
-							line = reader.ReadLine();
-						}
-						else
-						{
-							//This line isn't a language name stanza or a delimiter stanza, so stop trying for them
-							break;	
-						}
-					}
-				}
-				
-				for(; line != null; line = reader.ReadLine(), lineno++)
-				{
-					//Try to match the more strict regex first; reg2 has one or more trailing delimiters on the end that get discarded.
-					MatchCollection mc = dictLineReg2.Matches(line);
-					if(mc.Count != 1)
-					{
-						mc = dictLineReg1.Matches(line);
-						if(mc.Count != 1)
-						{
-							putLogLine("Warning: Input File " + file.Name + ", Line " + lineno + ": Does not contain exactly one separator character `" + delimiter + "'. SKIPPING LINE.");
-							continue;
-						}
-					}
-					
-					Match theMatch = mc[0];
-					if(theMatch.Groups.Count != 3)
-					{
-						putLogLine("Warning: Input File " + file.Name + ", Line " + lineno + ": Contains " + theMatch.Groups.Count + " capture groups; expected 2. SKIPPING LINE.");
-						continue;
-					}
-					
-					string left = theMatch.Groups[1].Value;
-					string right = theMatch.Groups[2].Value;
-					
-					tryAddDictWord(ltr, left, right, getLeftLanguageName(), file.Name, lineno);
-					
-					tryAddDictWord(rtl, right, left, getRightLanguageName(), file.Name, lineno);
-				}
-				
-				fs.Close();
-				
-				putLogLine("Info: Parsing complete.");
-			}
-			catch(SystemException se)
-			{
-				throw new IOException("Can not read from file " + file.Name + "\n" + se.Message);	
-			}	
-		}
-		
-		private void tryAddDictWord(Dictionary<string, List<string>> dict, string key, string val, string langName, string filename, int lineno)
+		internal void tryAddDictWord(Dictionary<string, List<string>> dict, string key, string val, string langName, string filename, int lineno)
 		{
 			List<string> _try;
 			if(dict.TryGetValue(key.ToLower(), out _try))
@@ -718,7 +641,7 @@ namespace LibTehthu
 			}	
 		}
 		
-		private string trimSymbols(string input, out string trimmedStart, out string trimmedEnd)
+		internal string trimSymbols(string input, out string trimmedStart, out string trimmedEnd)
 		{
 			if(input == null)
 			{
