@@ -225,7 +225,12 @@ namespace GtkGUI
 				monitor.Start();
 			}
 		
-			teh.reparse();
+			if(!teh.reparse())
+			{
+				Gtk.MessageDialog m_d = new Gtk.MessageDialog(mainwindow, DialogFlags.DestroyWithParent, MessageType.Error, ButtonsType.Ok, "Error: Your dictionary file could not be parsed. Make sure it is not open in any other application, check the format, and try again.", new object[]{"Ok"});
+				m_d.Run();
+				System.Environment.Exit(0);
+			}
 			
 			//We're still here, there were no fatal exceptions, so this dict is "safe" for opening on startup (we hope)
 			//Remember this fact in the .tehthuconfig file.

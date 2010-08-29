@@ -559,11 +559,11 @@ namespace LibTehthu
 		 *  It is also called internally by LibTehthu (as indicated in this documentation) when certain WRITE functions are called.\n
 		 *  WRITE (this function is not thread-safe).
 		 * */
-		public void reparse()
+		public bool reparse()
 		{
 			ltr.Clear();
 			rtl.Clear();
-			parse();
+			return parse();
 		}
 		
 		internal void setFileInternal(FileInfo fileinfo, bool _reparse)
@@ -583,21 +583,28 @@ namespace LibTehthu
 			}
 		}
 		
-		internal void parse()
+		internal bool parse()
 		{
 			/* The responsibility of this method is to first instantiate a parser,
 			 * then use the generic Parser interface methods to orchtestrate the parsing.
 			 * */
 			Parser parseley;
 			
-			if(file != null && file.Name != null  && file.Name.Length > 4 && 
-			   file.Name.Substring(file.Name.Length - 4, 4) == ".ods")
+			try
 			{
-				parseley = new OdsParser(this);
+				if(file != null && file.Name != null  && file.Name.Length > 4 && 
+			    file.Name.Substring(file.Name.Length - 4, 4) == ".ods")
+				{
+					parseley = new OdsParser(this);
+				}
+				else
+				{
+					parseley = new TehthuParser(this);
+				}
 			}
-			else
+			catch(Exception e)
 			{
-				parseley = new TehthuParser(this);
+				return false;	
 			}
 			
 			putLogLine("Info: Parsing " + parseley.getFileFormatName() + " started.");
@@ -615,6 +622,7 @@ namespace LibTehthu
 			}
 			
 			putLogLine("Info: Parsing complete.");
+			return true;
 		}
 		
 		internal void tryAddDictWord(Dictionary<string, List<string>> dict, string key, string val, string langName, string filename, int lineno)

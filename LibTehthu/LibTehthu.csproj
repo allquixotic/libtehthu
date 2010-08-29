@@ -37,7 +37,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="Ionic.Zip.Reduced, Version=1.8.4.5, Culture=neutral, PublicKeyToken=c551e179877da246">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>Ionic.Zip.Reduced.dll</HintPath>
+      <HintPath>..\..\..\..\..\libtehthu-stable\Ionic.Zip.Reduced.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

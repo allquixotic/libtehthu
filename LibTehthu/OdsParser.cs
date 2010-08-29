@@ -110,8 +110,17 @@ namespace LibTehthu
 				rval = dr.ItemArray[1].ToString();
 			}
 			
-			lhs = lval;
-			rhs = rval;
+			if(lval.Trim().Length <= 0 || rval.Trim().Length <= 0)
+			{
+				lhs = rhs = null;
+				currentRow++;
+				return false;
+			}
+			else
+			{
+				lhs = lval;
+				rhs = rval;	
+			}
 			
 			currentRow++;
 			return true;
