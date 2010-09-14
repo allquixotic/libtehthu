@@ -294,7 +294,7 @@ namespace ODSReadWrite
             contentXml.Save(memStream);
             memStream.Seek(0, SeekOrigin.Begin);
 
-            templateFile.AddEntry("content.xml", "", memStream);
+            templateFile.AddEntry("content.xml", memStream);
         }
 
         private string GetNamespaceUri(string prefix)

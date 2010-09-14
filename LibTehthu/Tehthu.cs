@@ -268,10 +268,50 @@ namespace LibTehthu
 			
 			int i = 0;
 			string result = "";
-			string[] words = input.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
+			//string[] words = input.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
+			List<string> words = new List<string>();
+			int cursor = 0;
+			while(cursor < input.Length)
+			{
+				string preSymbols = "", postSymbols = "";
+				string scursor = input.Substring(cursor);
+				string searchedWord = "";
+				if(scursor.Trim()[0] == '[')
+				{
+					int idx = scursor.IndexOf("]");
+					if(idx >= 0)
+					{
+						searchedWord = scursor.Substring(0, idx + 1);
+					}
+				}
+				else
+				{
+					searchedWord = trimSymbols(BinarySearch(scursor, dir), out preSymbols, out postSymbols);
+					if(searchedWord == null || searchedWord.Length == 0)
+					{
+						int idx = scursor.IndexOf(' ');
+						if(idx >= 0)
+						{
+							searchedWord = scursor.Substring(0, idx + 1);
+						}
+					}
+				}
+				if(searchedWord.Trim().Length > 0)
+				{
+					putLogLine("searchedWord: " + searchedWord + "preSymbols: " + preSymbols + " postSymbols: " + postSymbols);
+					words.Add(preSymbols + searchedWord.Trim() + postSymbols);
+					cursor += searchedWord.Length + preSymbols.Length + postSymbols.Length + 1;
+				}
+				else
+				{
+					break;	
+				}
+			}
+			
 			int skipLoad = 0; //The number of words we should skip before trying to parse the next word
 			foreach(string word in words)
 			{
+				//putLogLine("Debug: Translating " + word);
 				if(skipLoad > 0)
 				{
 					skipLoad--;
@@ -280,7 +320,7 @@ namespace LibTehthu
 				string _out;
 				string tmpword = null;
 				
-				//Check for a literal word: tmpword is set iff only we found a literal word
+				//Check for a literal word: tmpword is set iff we found a literal word
 				if(word[0] == '[' && word[word.Length - 1] == ']')
 				{
 					//The easy case: one word surrounded by [these]
@@ -291,7 +331,7 @@ namespace LibTehthu
 					tmpword = word;
 					bool found_closing_bracket = false;
 					//We have to search the remainder of the sentence to see if there's a closing bracket
-					for(int j = i+1; j < words.Length; j++)
+					for(int j = i+1; j < words.Count; j++)
 					{
 						tmpword += " " + words[j];
 						if(tmpword[tmpword.Length - 1] == ']')
@@ -324,7 +364,7 @@ namespace LibTehthu
 				if(_out != null && _out.Trim().Length > 0)
 				{
 					result += _out;
-					if(i < words.Length - 1)
+					if(i < words.Count - 1)
 					{
 						result += " ";
 					}
@@ -333,6 +373,79 @@ namespace LibTehthu
 			}
 			
 			return result;
+		}
+		
+		/*! \brief Attempt to translate a single word from an input language to an output language, returning true if a match was found.
+		 *  Determining whether a translation exists is slightly faster (by a decent-sized constant factor) than actually finding the translation.
+		 *  \param _origKey The input word. Symbols are stripped from the beginning and end of the word before it is translated.
+		 *  \param dir The translation direction. LeftToRight means the input sentence is in the left-hand language,
+		 *             and the output sentence is in the right-hand language. Vice-versa for RightToLeft.
+		 *  \return true if the word was translated; false if no translation was found in the dictionary.
+		 * 
+		 *  No attempt is made to tokenize the string, so the entire input string will be looked up in the dictionary.
+		 *  Therefore you should call translate() instead if you want to translate a string containing multiple tokens.
+		 *  This function is reentrant, and can be used from multiple threads as long as WRITE functions are synchronized.
+		 * */
+		public bool haveTranslation(string _origKey, TranslateDirection dir)
+		{	
+			if(_origKey == null || (dir != TranslateDirection.LeftToRight && dir != TranslateDirection.RightToLeft))
+			{
+				putLogLine("Warning: null key or invalid direction in haveTranslation()");
+				return false;	
+			}
+			
+			if((_origKey.Length > 2 && _origKey[0] == '[' && _origKey[_origKey.Length - 1] == ']') || _origKey.ToLower() == "amarok")
+			{
+				return true;
+			}
+			
+			bool success = false;
+			string intermed_key = _origKey.ToLower();
+			string trimmedStart, trimmedEnd;
+			string key = trimSymbols(intermed_key, out trimmedStart, out trimmedEnd);
+			Dictionary<string, List<string>> dict;
+			
+			if(dir == TranslateDirection.LeftToRight)
+			{
+				dict = ltr;
+			}
+			else
+			{
+				dict = rtl;
+			}
+			
+			if(dict.ContainsKey(key))
+			{
+				return true;	
+			}
+			else
+			{
+				Dictionary<string, List<string>> suffixDict;
+				if(dir == TranslateDirection.LeftToRight)
+				{
+					suffixDict = ltrSuffixMap;
+				}
+				else
+				{
+					suffixDict = rtlSuffixMap;
+				}
+				
+				foreach(string suffixKey in suffixDict.Keys)
+				{
+					Regex suffixRx = new Regex(@"(.+)" + suffixKey);
+					MatchCollection smc = suffixRx.Matches(key);
+					if(smc.Count == 1 && dict.ContainsKey(key.Substring(0, key.Length - suffixKey.Length).ToLower()))
+					{
+						if(suffixDict.ContainsKey(suffixKey))
+						{
+							success = true; // We got a translation for the word with the suffix removed!
+							break;
+						}
+					}
+				}
+			}
+
+			return success;
 		}
 		
 		/*! \brief Translate a single word from an input language to an output language.
@@ -604,6 +717,7 @@ namespace LibTehthu
 			}
 			catch(Exception e)
 			{
+				putLogLine(e.StackTrace);
 				return false;	
 			}
 			
@@ -690,6 +804,48 @@ namespace LibTehthu
 			}
 			
 			return input.Substring(start, end - start + 1);
+		}
+		
+		private bool Predicate(string input, TranslateDirection dir)
+		{
+			return haveTranslation(input, dir);
+		}
+		
+		private static string Subarray(string [] array, int start, int length)
+		{
+			string output = "";
+			for(int i = start; i < length; i++)
+			{
+				output += array[i] + " ";	
+			}
+			return output.Trim();
+		}
+		
+		internal string BinarySearch(string haystack, TranslateDirection dir)
+		{
+			string[] words = haystack.Split(whitespace, StringSplitOptions.RemoveEmptyEntries);
+			
+        	int it = words.Length;
+        	int res = 0;
+	        while(it > res)
+			{
+	                if(Predicate(Subarray(words, 0, it), dir))
+					{
+	                        res = it;
+	                        it += (words.Length - it)/2; 
+	                }
+					else
+					{
+	                        it -= (it - res)/2;
+	                        if(it - 1 == res && !Predicate(Subarray(words, 0, it), dir))
+							{
+	                            break;
+							}
+	                }
+	        }
+	        string s = Subarray(words, 0, res);
+			//putLogLine("Debug: BinarySearch returning " + s);
+			return s;
 		}
 	}
 }
