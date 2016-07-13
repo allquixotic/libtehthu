@@ -63,10 +63,9 @@ namespace GtkGUI
 				Console.WriteLine("Resource " + ss);	
 			}
 			*/
-			
-			Stream s = ass.GetManifestResourceStream("GtkGUI.teh.glade");
-			StreamReader sr = new StreamReader(s);
-			string gladefile = sr.ReadToEnd();
+
+            StreamReader ms = new StreamReader(new MemoryStream(TehthuGUI.Properties.Resources.teh));
+            string gladefile = ms.ReadToEnd();
 			
 			Application.Init ();
 			xml = new Glade.XML(gladefile, gladefile.Length, "MW", null);
@@ -109,22 +108,30 @@ namespace GtkGUI
 				Gtk.RadioButton leftButton = (Gtk.RadioButton) xml.GetWidget("LeftButton");
 				leftButton.Toggled += delegate(object sender, EventArgs e) {
 					leftToRight = true;
-					
-					Gtk.Label inputTabLabel = (Gtk.Label) nb.GetTabLabel(nb.GetNthPage(0));
-					inputTabLabel.Text = "Input (" 
-						+ (leftToRight ? teh.getLeftLanguageName() : teh.getRightLanguageName())
-						+ ")";
-					
-					Gtk.Label outputTabLabel = (Gtk.Label) nb.GetTabLabel(nb.GetNthPage(1));
-					outputTabLabel.Text = "Output (" 
-						+ (leftToRight ? teh.getRightLanguageName() : teh.getLeftLanguageName())
-						+ ")";
+
+                    try
+                    {
+                        Gtk.Label inputTabLabel = (Gtk.Label)nb.GetTabLabel(nb.GetNthPage(0));
+                        inputTabLabel.Text = "Input ("
+                            + (leftToRight ? teh.getLeftLanguageName() : teh.getRightLanguageName())
+                            + ")";
+
+                        Gtk.Label outputTabLabel = (Gtk.Label)nb.GetTabLabel(nb.GetNthPage(1));
+                        outputTabLabel.Text = "Output ("
+                            + (leftToRight ? teh.getRightLanguageName() : teh.getLeftLanguageName())
+                            + ")";
+                    }
+                    catch (Exception eee)
+                    {
+                        Console.WriteLine("boo");
+                    }
 				};
 				
 				Gtk.RadioButton rightButton = (Gtk.RadioButton) xml.GetWidget("RightButton");
 				rightButton.Toggled += delegate(object sender, EventArgs e) {
 					leftToRight = false;
-					
+
+                    try { 
 					Gtk.Label inputTabLabel = (Gtk.Label) nb.GetTabLabel(nb.GetNthPage(0));
 					inputTabLabel.Text = "Input (" 
 						+ (leftToRight ? teh.getLeftLanguageName() : teh.getRightLanguageName())
@@ -134,6 +141,11 @@ namespace GtkGUI
 					outputTabLabel.Text = "Output (" 
 						+ (leftToRight ? teh.getRightLanguageName() : teh.getLeftLanguageName())
 						+ ")";
+                    }
+                    catch (Exception eee)
+                    {
+                        Console.WriteLine("boo");
+                    }
 				};
 				
 				Gtk.Entry input = (Gtk.Entry) xml.GetWidget("Input");

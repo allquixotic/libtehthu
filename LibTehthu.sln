@@ -1,13 +1,9 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibTehthu", "LibTehthu\LibTehthu.csproj", "{8C529EE3-EF9C-4EFD-B432-EB578894C6C6}"
 EndProject
-Project("{9344bdbb-3e7f-41fc-a0dd-8665d75ee146}") = "Packages", "Packages.mdproj", "{F3F4A8D2-26EB-4C44-A359-F0E7A1842BF8}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{66FF7726-E070-4C7F-B5D1-DB7AD7EDDC40}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gtk-GUI", "Gtk-GUI\Gtk-GUI.csproj", "{584EAF95-EBF8-4A54-B77E-5C2269E7B26B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TehthuGUI", "Gtk-GUI\TehthuGUI.csproj", "{584EAF95-EBF8-4A54-B77E-5C2269E7B26B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,16 +15,10 @@ Global
 		{584EAF95-EBF8-4A54-B77E-5C2269E7B26B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{584EAF95-EBF8-4A54-B77E-5C2269E7B26B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{584EAF95-EBF8-4A54-B77E-5C2269E7B26B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{66FF7726-E070-4C7F-B5D1-DB7AD7EDDC40}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{66FF7726-E070-4C7F-B5D1-DB7AD7EDDC40}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{66FF7726-E070-4C7F-B5D1-DB7AD7EDDC40}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{66FF7726-E070-4C7F-B5D1-DB7AD7EDDC40}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8C529EE3-EF9C-4EFD-B432-EB578894C6C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8C529EE3-EF9C-4EFD-B432-EB578894C6C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C529EE3-EF9C-4EFD-B432-EB578894C6C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8C529EE3-EF9C-4EFD-B432-EB578894C6C6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F3F4A8D2-26EB-4C44-A359-F0E7A1842BF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F3F4A8D2-26EB-4C44-A359-F0E7A1842BF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F745FFAB-73DC-4FCC-A92A-0085C33F2894}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F745FFAB-73DC-4FCC-A92A-0085C33F2894}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F745FFAB-73DC-4FCC-A92A-0085C33F2894}.Release|Any CPU.ActiveCfg = Release|Any CPU
